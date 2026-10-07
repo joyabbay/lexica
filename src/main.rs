@@ -32,6 +32,9 @@ enum Command {
         #[command(subcommand)]
         operation: ListOp,
     },
+    Invalidate{
+        word: String,
+    }
 }
 
 #[derive(Subcommand, Debug)]

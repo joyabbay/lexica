@@ -16,6 +16,46 @@ impl Database {
             .context("Unable to execute table schema")?;
         Ok(Self { conn })
     }
+    pub fn insert_list(&self,list_name: &str) -> anyhow::Result<()> {
+        self.conn.execute("INSERT INTO lists (list_name) VALUES (?1)", params![list_name])?;
+        Ok(())
+    }
+    pub fn delete_list(&self,list_name: &str) -> anyhow::Result<()> {
+        self.conn.execute("DELETE FROM lists WHERE list_name = ?1", params![list_name])?;
+        Ok(())
+    }
+    pub fn show_lists(&self) ->anyhow::Result<Vec<String>> {
+        let mut stmt = self.conn.prepare("SELECT name FROM lists")?;
+        let lists: Vec<String> = stmt
+            .query_map([], |row| {
+                row.get::<_, String>(0)
+            })?
+            .collect::<rusqlite::Result<Vec<String>>>()?;
+        Ok(lists)
+    }
+
+    pub fn invalidate_word(&self,word: &str) -> anyhow::Result<()> {
+        self.conn.execute("DELETE FROM words WHERE word = ?1", params![word])?;
+        Ok(())
+    }
+    pub fn remove_word_from_list(&self,list_name: &str,spelling: &str) -> anyhow::Result<()> {
+        let tx = self.conn.unchecked_transaction()?;
+        let word_id = tx.query_row("SELECT id FROM words WHERE word=?1",params![spelling],
+        |row| Ok(row.get::<_,i64>(0)?))?;
+        let list_id = tx.query_row("SELECT id FROM lists WHERE list_name = ?1",params![list_name,],|row| Ok(row.get::<_,i64>(0)?))?;
+        tx.execute("DELETE FROM list_words (list_id,word_id) VALUES (?1,?2)",params![list_id,word_id])?;
+        tx.commit()?;
+        Ok(())
+    }
+    pub fn add_word_to_list(&self,list_name: &str,word: &str) -> anyhow::Result<()> {
+        let tx = self.conn.unchecked_transaction()?;
+        let word_id = tx.query_row("SELECT id FROM words WHERE word=?1",params![word],
+                                   |row| Ok(row.get::<_,i64>(0)?))?;
+        let list_id = tx.query_row("SELECT id FROM lists WHERE list_name = ?1",params![list_name,],|row| Ok(row.get::<_,i64>(0)?))?;
+        tx.execute("INSERT INTO list_words WHERE list_id = ?1 AND word_id = ?2",params![list_id,word_id])?;
+        tx.commit()?;
+        Ok(())
+    }
     pub fn insert_word(&self, word: Word) -> anyhow::Result<()> {
         let tx = self.conn.unchecked_transaction()?;
 
@@ -56,6 +96,16 @@ impl Database {
         tx.commit()?;
 
         Ok(())
+    }
+    pub fn search_word(&self,prefix: &str) -> anyhow::Result<Vec<String>>{
+        let pattern = format!("%{}%", prefix);
+        let mut stmt = self.conn.prepare("SELECT word FROM words WHERE word = ?1")?;
+        let words: Vec<String> = stmt
+            .query_map([pattern], |row| {
+                row.get::<_, String>(0)
+            })?
+            .collect::<rusqlite::Result<Vec<String>>>()?;
+        Ok(words)
     }
     pub fn get_word(
         &self,
@@ -160,4 +210,5 @@ impl Database {
             meanings,
         }))
     }
+
 }

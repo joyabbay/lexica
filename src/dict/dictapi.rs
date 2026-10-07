@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 //TODO: Again make this configurable
 // API endpoint
-const API_KEY: &str = "https://api.dictionaryapi.dev/api/v2/entries/en/";
+const API_KEY: &str = "https://api.dictionaryapi.dev/api/v2/entries/en";
 
 pub struct DictApi;
 
@@ -158,7 +158,7 @@ fn add_meanings(meanings: &mut Vec<Meaning>, api_meanings: Vec<ApiMeaning>) {
 impl DictionaryProvider for DictApi {
     fn get_word(word: &str) -> anyhow::Result<Word> {
         let client = reqwest::blocking::Client::new();
-        let url = format!("https://api.dictionaryapi.dev/api/v2/entries/en/{}", word);
+        let url = format!("{}/{}",API_KEY, word);
 
         let response = client.get(url).send()?.error_for_status()?;
 

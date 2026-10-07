@@ -1,4 +1,5 @@
 --NOTE: Enforce foreign key constraints
+--NOTE: This enforcement is connection wide and not db wide 
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS words(
