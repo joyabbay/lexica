@@ -1,8 +1,6 @@
 //This uses free API provider `dictionaryapi.dev`
 use serde::Deserialize;
 
-//TODO: Again make this configurable
-// API endpoint
 const API_KEY: &str = "https://api.dictionaryapi.dev/api/v2/entries/en";
 
 pub struct DictApi;
@@ -79,7 +77,7 @@ struct ApiEntry {
 #[derive(Debug, Deserialize)]
 struct ApiMeaning {
     #[serde(rename = "partOfSpeech")]
-    part_of_speech: Option<String>,
+    part_of_speech: String,
     definitions: Vec<ApiDefinition>,
 }
 
@@ -89,7 +87,6 @@ struct ApiDefinition {
     example: Option<String>,
     synonyms: Vec<String>,
 }
-
 
 impl From<ApiDefinition> for Definition {
     fn from(definition: ApiDefinition) -> Self {
@@ -112,13 +109,16 @@ impl From<ApiMeaning> for Meaning {
         }
     }
 }
-impl From<Vec<ApiEntry>> for Word {
-    fn from(entries: Vec<ApiEntry>) -> Self {
+//TODO: Difference between From and TryFrom
+impl TryFrom<Vec<ApiEntry>> for Word {
+    type Error = anyhow::Error;
+
+    fn try_from(entries: Vec<ApiEntry>) -> Result<Self, Self::Error> {
         let mut entries = entries.into_iter();
 
-        let first = entries
-            .next()
-            .expect("cannot create Word from empty entries");
+        let Some(first) = entries.next() else {
+            return Err(anyhow::anyhow!("no dictionary entry found"));
+        };
 
         let mut word = Word {
             spelling: first.word,
@@ -136,7 +136,7 @@ impl From<Vec<ApiEntry>> for Word {
             add_meanings(&mut word.meanings, entry.meanings);
         }
 
-        word
+        Ok(word)
     }
 }
 
@@ -156,20 +156,15 @@ fn add_meanings(meanings: &mut Vec<Meaning>, api_meanings: Vec<ApiMeaning>) {
 }
 
 impl DictionaryProvider for DictApi {
-    fn get_word(word: &str) -> anyhow::Result<Word> {
+    fn get_word(&self, word: &str) -> anyhow::Result<Word> {
         let client = reqwest::blocking::Client::new();
-        let url = format!("{}/{}",API_KEY, word);
+        let url = format!("{}/{}", API_KEY, word);
 
         let response = client.get(url).send()?.error_for_status()?;
 
         let entries: Vec<ApiEntry> = response.json()?;
 
-        if entries.is_empty() {
-            return Err(anyhow::anyhow!("no dictionary entry found"));
-        }
-
-        Ok(entries.into())
-        // pollster::block_on(Self::lookup(word))
+        entries.try_into()
     }
 }
 // impl DictApi {
@@ -177,12 +172,13 @@ impl DictionaryProvider for DictApi {
 //     }
 // }
 
+#[cfg(test)]
 mod tests {
     use super::{DictApi, DictionaryProvider};
 
     #[test]
     fn test_get_word() -> anyhow::Result<()> {
-        let word = DictApi::get_word("hello")?;
+        let word = DictApi.get_word("hello")?;
         println!("{word}");
         Ok(())
     }

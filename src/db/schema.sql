@@ -1,5 +1,5 @@
 --NOTE: Enforce foreign key constraints
---NOTE: This enforcement is connection wide and not db wide 
+--NOTE: This enforcement is connection wide and not db wide
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS words(
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS words(
 CREATE TABLE IF NOT EXISTS meanings(
     id INTEGER PRIMARY KEY,
     word_id INTEGER NOT NULL,
-    part_of_speech TEXT NOT NULL,
+    part_of_speech TEXT,
 
     FOREIGN KEY (word_id) REFERENCES words(id) ON DELETE CASCADE
 );

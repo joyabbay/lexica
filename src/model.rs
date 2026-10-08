@@ -9,7 +9,7 @@ pub struct Word {
 
 #[derive(Debug, Clone)]
 pub struct Meaning {
-    pub part_of_speech: Option<String>,
+    pub part_of_speech: String,
     pub definitions: Vec<Definition>,
 }
 
@@ -38,9 +38,7 @@ impl fmt::Display for Word {
 
 impl fmt::Display for Meaning {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(pos) = &self.part_of_speech {
-            writeln!(f, "  {pos}")?;
-        }
+        writeln!(f, "  {}", self.part_of_speech)?;
 
         for (i, definition) in self.definitions.iter().enumerate() {
             writeln!(f, "  {}. {}", i + 1, definition)?;

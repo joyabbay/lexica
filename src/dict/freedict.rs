@@ -48,12 +48,8 @@ impl From<ApiSense> for Definition {
 impl From<ApiEntry> for Meaning {
     fn from(entry: ApiEntry) -> Self {
         Self {
-            part_of_speech: Some(entry.part_of_speech),
-            definitions: entry
-                .senses
-                .into_iter()
-                .map(Definition::from)
-                .collect(),
+            part_of_speech: entry.part_of_speech,
+            definitions: entry.senses.into_iter().map(Definition::from).collect(),
         }
     }
 }
@@ -67,11 +63,7 @@ impl From<ApiResponse> for Word {
             .map(|pronunciation| pronunciation.text.clone())
             .next();
 
-        let meanings = response
-            .entries
-            .into_iter()
-            .map(Meaning::from)
-            .collect();
+        let meanings = response.entries.into_iter().map(Meaning::from).collect();
 
         Self {
             spelling: response.word,
@@ -82,15 +74,12 @@ impl From<ApiResponse> for Word {
 }
 
 impl DictionaryProvider for FreeDict {
-    fn get_word(word: &str) -> anyhow::Result<Word> {
+    fn get_word(&self, word: &str) -> anyhow::Result<Word> {
         let client = reqwest::blocking::Client::new();
 
         let url = format!("{API_URL}/{word}");
 
-        let response = client
-            .get(url)
-            .send()?
-            .error_for_status()?;
+        let response = client.get(url).send()?.error_for_status()?;
 
         let response: ApiResponse = response.json()?;
 
