@@ -142,6 +142,7 @@ Features that may be added in future
 - [ ] pretty print with colors
 - [ ] export to various file format CSV,JSON,etc...
 - [ ] audio url plays pronounciation(This may not be added at all)
+- [ ] Change default DB location
 
 # Contributing
 
